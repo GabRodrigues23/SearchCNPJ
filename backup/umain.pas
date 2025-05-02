@@ -65,13 +65,8 @@ begin
 
   try
     CNPJ := ClearCNPJ(txtCNPJ.Text);
-    if (CNPJ = '') or (Length(CNPJ) <> 14) then
-      begin
-        showMessage('Por favor, informe um CNPJ válido');
-        exit;
-      end;
 
-    URL := 'https://receitaws.com.br/v1/cnpj/' + CNPJ;
+    URL := 'https://receitas.com.br/v1/cnpj/' + CNPJ;
 
     HTTP := THTTPSend.Create;
     ResponseStream := TStringStream.Create('', TEncoding.UTF8);
@@ -80,27 +75,50 @@ begin
 
     try
       if HTTP.HTTPMethod('GET', URL) then
-      begin
-        ResponseStream.LoadFromStream(HTTP.Document);
-        Response := ResponseStream.DataString;
+        begin
+          if (HTTP.ResultCode >= 200) and (HTTP.ResultCode <= 300) then
+            begin
+              ResponseStream.LoadFromStream(HTTP.Document);
+              Response := ResponseStream.DataString;
 
-        JSON := GetJSON(Response);
+              JSON := GetJSON(Response);
 
-        memo.Lines.Add('Razao Social: ' + JSON.FindPath('nome').AsString);
-        memo.Lines.Add('Nome Fantasia: ' + JSON.FindPath('fantasia').AsString);
-        memo.Lines.Add('CNPJ: ' + JSON.FindPath('cnpj').AsString);
-        memo.Lines.Add('Inscricao Estadual: ' + GetSafeJSONValue(JSON, 'ie', 'n/a'));
-        memo.Lines.Add('Endereco: ' + JSON.FindPath('logradouro').AsString +
-          ', ' + JSON.FindPath('numero').AsString +
-          ' - ' + JSON.FindPath('bairro').AsString);
-        memo.Lines.Add('Cidade/UF: ' + Json.FindPath('municipio').AsString +
-          '/' + Json.FindPath('uf').AsString);
-      end
+              if JSON.FindPath('status') <> nil then
+                begin
+                  if JSON.FindPath('status').AsString = 'ERROR' then
+                  begin
+                    raise Exception.Create('400');
+                  end;
+                end;
+
+              memo.Lines.Add('Razao Social: ' + JSON.FindPath('nome').AsString);
+              memo.Lines.Add('Nome Fantasia: ' + JSON.FindPath('fantasia').AsString);
+              memo.Lines.Add('CNPJ: ' + JSON.FindPath('cnpj').AsString);
+              memo.Lines.Add('Inscricao Estadual: ' + GetSafeJSONValue(JSON, 'ie', 'n/a'));
+              memo.Lines.Add('Endereco: ' + JSON.FindPath('logradouro').AsString +
+                ', ' + JSON.FindPath('numero').AsString +
+                ' - ' + JSON.FindPath('bairro').AsString);
+              memo.Lines.Add('Cidade/UF: ' + Json.FindPath('municipio').AsString +
+                '/' + Json.FindPath('uf').AsString);
+            end
+          else
+            raise Exception.Create('Erro HTTP: ' + IntToStr(HTTP.ResultCode));
+        end
       else
-        ShowMessage('Erro ao conectar na API' + LineEnding + 'Código de resposta HTTP: ' + IntToStr(HTTP.ResultCode));
+        raise Exception.Create('Erro ao conectar na API' + LineEnding + 'Código de resposta HTTP: ' + IntToStr(HTTP.ResultCode));
+
     except
       on e: Exception do
-        ShowMessage('Erro' + e.Message);
+        begin
+          if Pos('429', e.Message) > 0 then
+            ShowMessage('Muitas requisições. Aguarde e tente novamente.')
+          else if Pos('400', e.Message) > 0 then
+            ShowMessage('Requisição inválida. Verifique o CNPJ informado.')
+          else if Pos('500', e.Message) > 0 then
+            ShowMessage('Erro interno no servidor. Tente novamente mais tarde')
+          else
+            ShowMessage('Erro desconhecido: ' + e.Message);
+        end
     end;
   finally
     if Assigned(JSON) then JSON.Free;
