@@ -12,7 +12,6 @@ type
   { TfrmMain }
 
   TfrmMain = class(TForm)
-    Button1: TButton;
     lbTitle: TLabel;
     lbCNPJ: TLabel;
     txtCNPJ: TEdit;
@@ -45,52 +44,69 @@ begin
     Result := Default;
 end;
 
+function ClearCNPJ(const CNPJ: string): string;
+begin
+  Result := trim(CNPJ);
+  Result := StringReplace(Result, '.', '', [rfReplaceAll]);
+  Result := StringReplace(Result, '/', '', [rfReplaceAll]);
+  Result := StringReplace(Result, '-', '', [rfReplaceAll]);
+end;
+
 procedure TfrmMain.btnSearchClick(Sender: TObject);
 var
-  CNPJ, URL, Response : String;
-  HTTP : THTTPSend;
-  ResponseStream : TStringStream;
-  JSON : TJSONdata;
-
+  CNPJ, URL, Response: string;
+  HTTP: THTTPSend;
+  ResponseStream: TStringStream;
+  JSON: TJSONdata;
 begin
+  JSON := nil;
+  ResponseStream := nil;
+  HTTP := nil;
+
   try
-    CNPJ := txtCNPJ.Text;
+    CNPJ := ClearCNPJ(txtCNPJ.Text);
+    if (CNPJ = '') or (Length(CNPJ) <> 14) then
+      begin
+        showMessage('Por favor, informe um CNPJ válido');
+        exit;
+      end;
+
     URL := 'https://receitaws.com.br/v1/cnpj/' + CNPJ;
-    JSON := nil;
+
+    HTTP := THTTPSend.Create;
+    ResponseStream := TStringStream.Create('', TEncoding.UTF8);
 
     Memo.Lines.Clear;
 
-    HTTP := THTTPSend.Create;
-    ResponseStream := TStringStream.Create('');
-
     try
       if HTTP.HTTPMethod('GET', URL) then
-        begin
-          ResponseStream.LoadFromStream(HTTP.Document);
-          Response := ResponseStream.DataString;
+      begin
+        ResponseStream.LoadFromStream(HTTP.Document);
+        Response := ResponseStream.DataString;
 
-          JSON := GetJSON(Response);
+        JSON := GetJSON(Response);
 
-          memo.Lines.Add('Razão Social: ' + JSON.FindPath('nome').AsString);
-          memo.Lines.Add('Nome Fantasia: ' +  JSON.FindPath('fantasia').AsString);
-          memo.Lines.Add('CNPJ: ' + JSON.FindPath('cnpj').AsString);
-          memo.Lines.Add('Inscrição Estadual: ' + GetSafeJSONValue(JSON, 'ie', '[N/A]'));
-          memo.Lines.Add('Endereço: ' + JSON.FindPath('logradouro').AsString + ', '
-                        + JSON.FindPath('numero').AsString + ' - '
-                        + JSON.FindPath('bairro').AsString + ' - '
-                        + JSON.FindPath('municipio').AsString + ' - '
-                        + JSON.FindPath('uf').AsString);
-        end
+        memo.Lines.Add('Razao Social: ' + JSON.FindPath('nome').AsString);
+        memo.Lines.Add('Nome Fantasia: ' + JSON.FindPath('fantasia').AsString);
+        memo.Lines.Add('CNPJ: ' + JSON.FindPath('cnpj').AsString);
+        memo.Lines.Add('Inscricao Estadual: ' + GetSafeJSONValue(JSON, 'ie', 'n/a'));
+        memo.Lines.Add('Endereco: ' + JSON.FindPath('logradouro').AsString +
+          ', ' + JSON.FindPath('numero').AsString +
+          ' - ' + JSON.FindPath('bairro').AsString);
+        memo.Lines.Add('Cidade/UF: ' + Json.FindPath('municipio').AsString +
+          '/' + Json.FindPath('uf').AsString);
+      end
       else
-        ShowMessage('Erro ao conectar na API');
+        ShowMessage('Erro ao conectar na API' + LineEnding + 'Código de resposta HTTP: ' + IntToStr(HTTP.ResultCode));
     except
       on e: Exception do
         ShowMessage('Erro' + e.Message);
     end;
   finally
-    JSON.Free;
-    ResponseStream.Free;
-    HTTP.Free;
+    if Assigned(JSON) then JSON.Free;
+    if Assigned(ResponseStream) then ResponseStream.Free;
+    if Assigned(HTTP) then HTTP.Free;
   end;
 end;
+
 end.
