@@ -66,7 +66,7 @@ begin
   try
     CNPJ := ClearCNPJ(txtCNPJ.Text);
 
-    URL := 'https://receitas.com.br/v1/cnpj/' + CNPJ;
+    URL := 'https://receitaws.com.br/v1/cnpj/' + CNPJ;
 
     HTTP := THTTPSend.Create;
     ResponseStream := TStringStream.Create('', TEncoding.UTF8);
@@ -95,6 +95,8 @@ begin
               memo.Lines.Add('Nome Fantasia: ' + JSON.FindPath('fantasia').AsString);
               memo.Lines.Add('CNPJ: ' + JSON.FindPath('cnpj').AsString);
               memo.Lines.Add('Inscricao Estadual: ' + GetSafeJSONValue(JSON, 'ie', 'n/a'));
+              memo.Lines.Add('Porte: ' + JSON.FindPath('porte').AsString);
+              memo.Lines.Add('Data Inscricao: ' + JSON.FindPath('data_situacao').AsString);
               memo.Lines.Add('Endereco: ' + JSON.FindPath('logradouro').AsString +
                 ', ' + JSON.FindPath('numero').AsString +
                 ' - ' + JSON.FindPath('bairro').AsString);

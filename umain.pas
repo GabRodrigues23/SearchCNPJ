@@ -95,11 +95,16 @@ begin
               memo.Lines.Add('Nome Fantasia: ' + JSON.FindPath('fantasia').AsString);
               memo.Lines.Add('CNPJ: ' + JSON.FindPath('cnpj').AsString);
               memo.Lines.Add('Inscricao Estadual: ' + GetSafeJSONValue(JSON, 'ie', 'n/a'));
+              memo.Lines.Add('Porte: ' + JSON.FindPath('porte').AsString);
+              memo.Lines.Add('Data Inscricao: ' + JSON.FindPath('data_situacao').AsString);
               memo.Lines.Add('Endereco: ' + JSON.FindPath('logradouro').AsString +
                 ', ' + JSON.FindPath('numero').AsString +
                 ' - ' + JSON.FindPath('bairro').AsString);
               memo.Lines.Add('Cidade/UF: ' + Json.FindPath('municipio').AsString +
                 '/' + Json.FindPath('uf').AsString);
+
+              memo.Lines.Add('Email: ' + JSON.FindPath('email').AsString);
+              memo.Lines.Add('Telefone: ' + JSON.FindPath('telefone').AsString);
             end
           else
             raise Exception.Create('Erro HTTP: ' + IntToStr(HTTP.ResultCode));

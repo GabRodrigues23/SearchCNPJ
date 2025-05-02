@@ -15,6 +15,7 @@ object frmMain: TfrmMain
   Font.Pitch = fpFixed
   Font.Quality = fqDraft
   Position = poScreenCenter
+  LCLVersion = '3.2.0.0'
   object lbTitle: TLabel
     Left = 139
     Height = 47
